@@ -17,6 +17,10 @@ cp .env.example .env
 ```
 TRIGGER_API_KEY=tr_dev_your_trigger_api_key_here
 ANCHOR_BROWSER_API_KEY=sk-your_anchor_browser_api_key_here
+
+# Telegram 推送（選填）
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+TELEGRAM_CHAT_ID=your_telegram_chat_id
 ```
 
 ```bash
@@ -159,6 +163,107 @@ export const broadwayMonitor = schedules.task({
 ```
 npx trigger.dev@latest dev
 ```
+
+### TradingView Strong Buy 監控任務
+
+在 [src/trigger/tradingview-us-strong-buy.ts](src/trigger/tradingview-us-strong-buy.ts) 建立每個交易日下午 3 點（美東時間）自動執行的選股任務，篩選條件：**價格 > $10 且 Analyst Rating 為 Strong Buy**，結果推送至 Telegram。
+
+```typescript
+import { schedules } from "@trigger.dev/sdk";
+import Anchorbrowser from 'anchorbrowser';
+
+async function sendTelegram(message: string) {
+  const token = process.env.TELEGRAM_BOT_TOKEN!;
+  const chatId = process.env.TELEGRAM_CHAT_ID!;
+  await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: "HTML" }),
+  });
+}
+
+export const tradingviewStrongBuy = schedules.task({
+  id: "tradingview-us-strong-buy",
+  cron: {
+    pattern: "0 15 * * 1-5",
+    timezone: "America/New_York",
+  },
+  run: async () => {
+    const client = new Anchorbrowser({
+      apiKey: process.env.ANCHOR_BROWSER_API_KEY!,
+      timeout: 10 * 60 * 1000,
+    });
+    // ... 略
+  },
+});
+```
+
+Telegram 推送格式：
+
+```
+🚀 Strong Buy
+
+BKSY | BlackSky Technology Inc. | Price: $33.83 | Market Cap: 1.26B | Rating: Strong Buy | Sector: Technology services
+ARX | Accelerant Holdings | Price: $13.13 | Market Cap: 2.94B | Rating: Strong Buy | Sector: Finance
+
+https://www.tradingview.com/markets/stocks-usa/market-movers-losers/
+```
+
+### 本地端測試 Telegram 推送
+
+在 dashboard 觸發前，可先用假資料驗證 Telegram 設定是否正確：
+
+```bash
+node src/test-telegram.mjs
+```
+
+成功後 Telegram 會收到格式如下的訊息：
+
+```
+🚀 Strong Buy
+
+AAPL | Apple Inc. | Price: $189.50 | Market Cap: 2.9T | Rating: Strong Buy | Sector: Technology
+...
+
+https://www.tradingview.com/markets/stocks-usa/market-movers-losers/
+```
+
+### 本地端測試真實名單
+
+確保 dev server 正在執行：
+
+```bash
+npx trigger.dev@latest dev
+```
+
+到 [Trigger.dev dashboard](https://cloud.trigger.dev) → 選擇 `tradingview-us-strong-buy` → **Test** → **Run test**，結果會自動推送至 Telegram。
+
+### 部署到雲端（Production）
+
+**1. 在 Trigger.dev dashboard 設定環境變數**
+
+進入專案 → **Environment variables**，新增以下三個變數（雲端不會讀本地 `.env`）：
+
+```
+ANCHOR_BROWSER_API_KEY
+TELEGRAM_BOT_TOKEN
+TELEGRAM_CHAT_ID
+```
+
+**2. 部署**
+
+```bash
+npx trigger.dev@latest deploy
+```
+
+**3. 切換至 Production 環境執行**
+
+部署後到 dashboard 左上角切換至 **Production** 環境：
+
+- **手動觸發**：Tasks → `tradingview-us-strong-buy` → **Test** → **Run test**
+- **自動排程**：每個交易日美東時間下午 3 點自動執行，無需本地 dev server
+
+> **注意**：dashboard 預設顯示 Development 環境，手動測試 Production 請確認已切換環境再觸發。
 
 ### 深入了解
 

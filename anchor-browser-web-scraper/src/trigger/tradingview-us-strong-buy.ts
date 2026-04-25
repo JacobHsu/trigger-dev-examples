@@ -1,6 +1,16 @@
 import { schedules } from "@trigger.dev/sdk";
 import Anchorbrowser from 'anchorbrowser';
 
+async function sendTelegram(message: string) {
+  const token = process.env.TELEGRAM_BOT_TOKEN!;
+  const chatId = process.env.TELEGRAM_CHAT_ID!;
+  await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: "HTML" }),
+  });
+}
+
 export const tradingviewStrongBuy = schedules.task({
   id: "tradingview-us-strong-buy",
   cron: {
@@ -53,6 +63,20 @@ If fewer than 8 match, return however many qualify. If none match, say "No match
 
         console.log(`Found ${lines.length} matching stocks`);
         lines.forEach((line: string) => console.log(line));
+
+        const formatted = lines
+          .map((line: string) => line
+            .replace(/^Stock:\s*([A-Z]+)/, '<b>$1</b>')
+            .replace(/Price:\s*(\$[\d.]+)/, 'Price: <b>$1</b>')
+          )
+          .join('\n');
+        const symbols = lines
+          .map((line: string) => line.match(/Stock:\s*([A-Z]+)/)?.[1])
+          .filter(Boolean)
+          .join(', ');
+        const now = new Date().toLocaleString('zh-TW', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+        const message = `🚀 <b>Strong Buy: ${symbols}</b>\n${now}\n\n${formatted}\n\nhttps://www.tradingview.com/markets/stocks-usa/market-movers-losers/`;
+        await sendTelegram(message);
 
         return {
           success: true,
