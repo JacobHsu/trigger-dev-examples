@@ -1,3 +1,31 @@
+## 快速開始（本地端執行）
+
+```bash
+# 1. 複製專案並進入目錄
+git clone https://github.com/triggerdotdev/trigger-dev-examples.git
+cd trigger-dev-examples/anchor-browser-web-scraper
+
+# 2. 安裝相依套件
+npm install
+
+# 3. 複製環境變數範本並填入 API 金鑰
+cp .env.example .env
+```
+
+編輯 `.env`，填入您的 API 金鑰：
+
+```
+TRIGGER_API_KEY=tr_dev_your_trigger_api_key_here
+ANCHOR_BROWSER_API_KEY=sk-your_anchor_browser_api_key_here
+```
+
+```bash
+# 4. 啟動 Trigger.dev 開發伺服器
+npx trigger.dev@latest dev
+```
+
+---
+
 ### 專案設定
 
 本範例展示如何使用 Trigger.dev 的排程功能與 Anchor Browser 的 AI 瀏覽器自動化工具，進行自動化網頁監控。此專案每天東部時間下午 5 點執行，尋找當天百老匯演出的最低票價。
@@ -136,7 +164,3 @@ npx trigger.dev@latest dev
 
 - [Trigger.dev 文件](https://trigger.dev/docs) - 了解 Trigger.dev
 - [Anchor Browser 文件](https://docs.anchorbrowser.io/introduction) - 了解 Anchor Browser
-
-## 參考
-
-- [Trigger.dev](https://github.com/triggerdotdev) 
